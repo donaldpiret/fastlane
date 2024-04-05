@@ -86,7 +86,7 @@ module Snapshot
         when /^Apple Watch/
           os = 'watchOS'
         when /^Apple Vision/
-          os = 'xrOS'
+          os = 'visionOS'
         else
           os = 'iOS'
         end
