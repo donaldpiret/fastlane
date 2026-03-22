@@ -52,6 +52,10 @@ module Snapshot
 
     # Returns true if it succeeds
     def self.collect_screenshots_for_language_folder(destination)
+      # On macOS, the xctrunner is sandboxed and writes screenshots to its
+      # container instead of SCREENSHOTS_DIR. Copy them over before collecting.
+      copy_screenshots_from_macos_sandbox
+
       screenshots = Dir["#{SCREENSHOTS_DIR}/*.png"]
       return false if screenshots.empty?
       screenshots.each do |screenshot|
@@ -61,6 +65,29 @@ module Snapshot
       end
       FileUtils.rm_rf(SCREENSHOTS_DIR)
       return true
+    end
+
+    # The macOS UI test runner (xctrunner) runs inside an App Sandbox container.
+    # Screenshots written via SnapshotHelper end up in the container's cache
+    # directory rather than the shared SCREENSHOTS_DIR that fastlane reads from.
+    # This method detects any sandbox screenshots and copies them to SCREENSHOTS_DIR.
+    def self.copy_screenshots_from_macos_sandbox
+      return unless FastlaneCore::Helper.mac?
+
+      sandbox_base = File.expand_path("~/Library/Containers")
+      return unless Dir.exist?(sandbox_base)
+
+      # Find any xctrunner containers that have snapshot screenshots
+      Dir.glob(File.join(sandbox_base, "*.xctrunner", "Data", "Library", "Caches", "tools.fastlane", "screenshots")).each do |sandbox_dir|
+        sandbox_screenshots = Dir["#{sandbox_dir}/*.png"]
+        next if sandbox_screenshots.empty?
+
+        UI.message("Copying #{sandbox_screenshots.length} macOS sandbox screenshot(s) from #{sandbox_dir}")
+        FileUtils.mkdir_p(SCREENSHOTS_DIR)
+        sandbox_screenshots.each { |f| FileUtils.cp(f, SCREENSHOTS_DIR) }
+        # Clean sandbox so stale screenshots don't leak into the next language
+        FileUtils.rm(sandbox_screenshots)
+      end
     end
 
     def self.copy(from_path, to_path)
