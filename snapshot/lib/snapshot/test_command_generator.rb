@@ -85,6 +85,8 @@ module Snapshot
           os = 'tvOS'
         when /^Apple Watch/
           os = 'watchOS'
+        when /^Apple Vision/
+          os = 'visionOS'
         else
           os = 'iOS'
         end
@@ -129,6 +131,13 @@ module Snapshot
         end
         # Return true if all devices are watchOS devices
         return true unless all_watchos.include?(false)
+
+        all_visionos = devices.map do |device|
+          device = device.downcase
+          device.include?('apple vision')
+        end
+        # Return true if all devices are visionOS devices
+        return true unless all_visionos.include?(false)
 
         # There should only be more than 1 device type if
         # it is iOS or tvOS, therefore, if there is more than 1
