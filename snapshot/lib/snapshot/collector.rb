@@ -79,7 +79,14 @@ module Snapshot
 
       # Find any xctrunner containers that have snapshot screenshots
       Dir.glob(File.join(sandbox_base, "*.xctrunner", "Data", "Library", "Caches", "tools.fastlane", "screenshots")).each do |sandbox_dir|
-        sandbox_screenshots = Dir["#{sandbox_dir}/*.png"]
+        # Containers belonging to other apps are unreadable unless the shell has
+        # Full Disk Access; skip those instead of aborting the whole run.
+        begin
+          sandbox_screenshots = Dir["#{sandbox_dir}/*.png"]
+        rescue SystemCallError => ex
+          UI.verbose("Skipping unreadable sandbox container #{sandbox_dir}: #{ex.message}")
+          next
+        end
         next if sandbox_screenshots.empty?
 
         UI.message("Copying #{sandbox_screenshots.length} macOS sandbox screenshot(s) from #{sandbox_dir}")
