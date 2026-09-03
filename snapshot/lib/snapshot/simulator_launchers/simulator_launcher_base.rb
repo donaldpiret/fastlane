@@ -51,8 +51,23 @@ module Snapshot
     def prepare_simulators_for_launch(device_types, language: nil, locale: nil)
       # Kill and shutdown all currently running simulators so that the following settings
       # changes will be picked up when they are started again.
-      Snapshot.kill_simulator # because of https://github.com/fastlane/fastlane/issues/2533
-      `xcrun simctl shutdown booted &> /dev/null`
+      #
+      # `shutdown booted` hits every booted device on the machine, so a second
+      # snapshot run (one per platform, in parallel) would have its simulators
+      # pulled out from under it. FASTLANE_SNAPSHOT_KEEP_OTHER_SIMULATORS keeps
+      # this run to its own devices, and only quiesces them when a setting that
+      # requires a shut-down device was actually asked for.
+      if FastlaneCore::Env.truthy?("FASTLANE_SNAPSHOT_KEEP_OTHER_SIMULATORS")
+        if launcher_config.erase_simulator || launcher_config.localize_simulator || !launcher_config.dark_mode.nil?
+          device_types.each do |type|
+            udid = TestCommandGenerator.device_udid(type)
+            `xcrun simctl shutdown #{udid} &> /dev/null` if udid
+          end
+        end
+      else
+        Snapshot.kill_simulator # because of https://github.com/fastlane/fastlane/issues/2533
+        `xcrun simctl shutdown booted &> /dev/null`
+      end
 
       Fixes::SimulatorZoomFix.patch
       Fixes::HardwareKeyboardFix.patch

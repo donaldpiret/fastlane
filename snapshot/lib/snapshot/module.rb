@@ -32,7 +32,15 @@ module Snapshot
   UI = FastlaneCore::UI
   ROOT = Pathname.new(File.expand_path('../../..', __FILE__))
   DESCRIPTION = "Automate taking localized screenshots of your iOS and tvOS apps on every device"
-  CACHE_DIR = File.join(Dir.home, "Library/Caches/tools.fastlane")
+  # snapshot hands screenshots and the language/locale handshake files to the
+  # app through one well-known cache directory, and clears it after collecting
+  # each language. Two snapshot runs on one machine therefore delete each
+  # other's captures mid-run -- the test still passes, the screenshots just
+  # silently go missing. Set FASTLANE_SNAPSHOT_CACHE_SUFFIX to give a run its
+  # own directory; SnapshotHelper.swift in the app reads the same variable
+  # (passed to the test runner as TEST_RUNNER_FASTLANE_SNAPSHOT_CACHE_SUFFIX)
+  # so both sides agree. Use a plain name -- it is appended verbatim.
+  CACHE_DIR = File.join(Dir.home, "Library/Caches/tools.fastlane#{ENV['FASTLANE_SNAPSHOT_CACHE_SUFFIX']}")
   SCREENSHOTS_DIR = File.join(CACHE_DIR, 'screenshots')
   Boolean = Fastlane::Boolean
 
