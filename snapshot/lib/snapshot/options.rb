@@ -268,6 +268,11 @@ module Snapshot
                                      description: "Skips resolution of Swift Package Manager dependencies",
                                      type: Boolean,
                                      default_value: false),
+        FastlaneCore::ConfigItem.new(key: :disallow_xcodebuild_settings_lookup,
+                                     env_name: "SNAPSHOT_DISALLOW_XCODEBUILD_SETTINGS_LOOKUP",
+                                     description: "Raises an error instead of fetching build settings by running `xcodebuild -showBuildSettings`, which can take a long time on large projects. The error names the required build setting, so the corresponding option can be specified manually",
+                                     type: Boolean,
+                                     default_value: false),
         FastlaneCore::ConfigItem.new(key: :disable_package_automatic_updates,
                                      env_name: "SNAPSHOT_DISABLE_PACKAGE_AUTOMATIC_UPDATES",
                                      description: "Prevents packages from automatically being resolved to versions other than those recorded in the `Package.resolved` file. This translates in the option `-disableAutomaticPackageResolution` being passed to xcodebuild",
@@ -308,6 +313,11 @@ module Snapshot
                                      verify_block: proc do |value|
                                        verify_type('skip_testing', [Array, String], value)
                                      end),
+        FastlaneCore::ConfigItem.new(key: :run_rosetta_simulator,
+                                     env_name: "SNAPSHOT_RUN_ROSETTA_SIMULATOR",
+                                     description: "Run simulator in a Rosetta mode",
+                                     type: Boolean,
+                                     default_value: false),
 
         FastlaneCore::ConfigItem.new(key: :xcodebuild_formatter,
                                      env_names: ["SNAPSHOT_XCODEBUILD_FORMATTER", "FASTLANE_XCODEBUILD_FORMATTER"],

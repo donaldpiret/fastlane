@@ -10,7 +10,7 @@ module FastlaneCore
       password_part = " -P #{certificate_password.shellescape}"
       certificate_format_part = certificate_format.to_s.strip.empty? ? "" : " -f #{certificate_format.shellescape}"
 
-      command = "security import #{path.shellescape} -k '#{keychain_path.shellescape}'"
+      command = "security import #{path.shellescape} -k #{keychain_path.shellescape}"
       command << password_part
       command << certificate_format_part
       command << " -T /usr/bin/codesign" # to not be asked for permission when running a tool like `gym` (before Sierra)
@@ -98,7 +98,13 @@ module FastlaneCore
       server = server_name(keychain_name)
 
       # Attempt to find password in keychain for keychain
-      item = Security::InternetPassword.find(server: server)
+      begin
+        item = Security::InternetPassword.find(server: server)
+      rescue Security::Error => ex
+        UI.important("Could not read the keychain item #{server}: #{ex.message}")
+        item = nil
+      end
+
       if item
         keychain_password = item.password
         UI.important("Using keychain password from keychain item #{server} in #{keychain_path}")

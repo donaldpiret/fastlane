@@ -58,13 +58,11 @@ module Deliver
     def find_folders(options)
       containing = Helper.fastlane_enabled? ? FastlaneCore::FastlaneFolder.path : '.'
       options[:screenshots_path] ||= File.join(containing, 'screenshots')
-      options[:app_previews_path] ||= File.join(containing, 'app-previews')
       options[:metadata_path] ||= File.join(containing, 'metadata')
     end
 
     def ensure_folders_created(options)
       FileUtils.mkdir_p(options[:screenshots_path])
-      FileUtils.mkdir_p(options[:app_previews_path])
       FileUtils.mkdir_p(options[:metadata_path])
     end
 
@@ -85,7 +83,9 @@ module Deliver
       if options[:ipa]
         options[:platform] ||= FastlaneCore::IpaFileAnalyser.fetch_app_platform(options[:ipa])
       elsif options[:pkg]
-        options[:platform] = 'osx'
+        # :pkg defaults to any *.pkg in the current directory, so only infer
+        # osx from it when the user hasn't chosen a platform themselves
+        options[:platform] = 'osx' unless options.specified?(:platform)
       end
     end
 

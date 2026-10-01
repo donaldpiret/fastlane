@@ -61,12 +61,12 @@ module Snapshot
         if launcher_config.erase_simulator || launcher_config.localize_simulator || !launcher_config.dark_mode.nil?
           device_types.each do |type|
             udid = TestCommandGenerator.device_udid(type)
-            `xcrun simctl shutdown #{udid} &> /dev/null` if udid
+            Helper.backticks("xcrun simctl shutdown #{udid}", print: FastlaneCore::Globals.verbose?) if udid
           end
         end
       else
         Snapshot.kill_simulator # because of https://github.com/fastlane/fastlane/issues/2533
-        `xcrun simctl shutdown booted &> /dev/null`
+        Helper.backticks("xcrun simctl shutdown booted", print: FastlaneCore::Globals.verbose?)
       end
 
       Fixes::SimulatorZoomFix.patch
@@ -96,7 +96,10 @@ module Snapshot
 
       unless launcher_config.headless
         simulator_path = File.join(Helper.xcode_path, 'Applications', 'Simulator.app')
-        Helper.backticks("open -a #{simulator_path} -g", print: FastlaneCore::Globals.verbose?)
+        device_udid = TestCommandGenerator.device_udid(device_types.first)
+        command = "open -a #{simulator_path} -g"
+        command += " --args -CurrentDeviceUDID #{device_udid}" if device_udid
+        Helper.backticks(command, print: FastlaneCore::Globals.verbose?)
       end
     end
 
@@ -110,22 +113,22 @@ module Snapshot
 
         UI.message("Launch Simulator #{device_type}")
         if FastlaneCore::Helper.xcode_at_least?("13")
-          Helper.backticks("open -a Simulator.app --args -CurrentDeviceUDID #{device_udid} &> /dev/null")
+          Helper.backticks("open -a Simulator.app --args -CurrentDeviceUDID #{device_udid}", print: FastlaneCore::Globals.verbose?)
         else
-          Helper.backticks("xcrun instruments -w #{device_udid} &> /dev/null")
+          Helper.backticks("xcrun instruments -w #{device_udid}", print: FastlaneCore::Globals.verbose?)
         end
 
         paths.each do |path|
           UI.message("Adding '#{path}'")
 
           # Attempting addmedia since addphoto and addvideo are deprecated
-          output = Helper.backticks("xcrun simctl addmedia #{device_udid} #{path.shellescape} &> /dev/null")
+          output = Helper.backticks("xcrun simctl addmedia #{device_udid} #{path.shellescape}", print: FastlaneCore::Globals.verbose?)
 
           # Run legacy addphoto and addvideo if addmedia isn't found
           # Output will be empty string if it was a success
           # Output will contain "usage: simctl" if command not found
           if output.include?('usage: simctl')
-            Helper.backticks("xcrun simctl add#{media_type} #{device_udid} #{path.shellescape} &> /dev/null")
+            Helper.backticks("xcrun simctl add#{media_type} #{device_udid} #{path.shellescape}", print: FastlaneCore::Globals.verbose?)
           end
         end
       end
@@ -136,7 +139,7 @@ module Snapshot
 
       UI.message("Launch Simulator #{device_type}")
       # Boot the simulator and wait for it to finish booting
-      Helper.backticks("xcrun simctl bootstatus #{device_udid} -b &> /dev/null")
+      Helper.backticks("xcrun simctl bootstatus #{device_udid} -b", print: FastlaneCore::Globals.verbose?)
 
       # "Booted" status is not enough for to adjust the status bar
       # Simulator could still be booting with Apple logo
@@ -158,14 +161,14 @@ module Snapshot
         arguments = "--time #{time_str} --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --operatorName '' --cellularBars 4 --batteryState charged --batteryLevel 100"
       end
 
-      Helper.backticks("xcrun simctl status_bar #{device_udid} override #{arguments} &> /dev/null")
+      Helper.backticks("xcrun simctl status_bar #{device_udid} override #{arguments}", print: FastlaneCore::Globals.verbose?)
     end
 
     def clear_status_bar(device_type)
       device_udid = TestCommandGenerator.device_udid(device_type)
 
       UI.message("Clearing Status Bar Override")
-      Helper.backticks("xcrun simctl status_bar #{device_udid} clear &> /dev/null")
+      Helper.backticks("xcrun simctl status_bar #{device_udid} clear", print: FastlaneCore::Globals.verbose?)
     end
 
     def uninstall_app(device_type)
@@ -181,7 +184,7 @@ module Snapshot
 
       UI.important("Erasing #{device_type}...")
 
-      `xcrun simctl erase #{device_udid} &> /dev/null`
+      Helper.backticks("xcrun simctl erase #{device_udid}", print: FastlaneCore::Globals.verbose?)
     end
 
     def localize_simulator(device_type, language, locale)
